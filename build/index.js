@@ -24,9 +24,9 @@ if (process.env.npm_config_preview || rawArgv.includes('--preview')) {
   )
 
   app.listen(port, function () {
-    console.log(chalk.green(`> Preview at  http://192.168.0.117:8080:${port}${publicPath}`))
+    console.log(chalk.green(`> Preview at  http://192.168.0.123:8080:${port}${publicPath}`))
     if (report) {
-      console.log(chalk.green(`> Report at  http://192.168.0.117:8080:${port}${publicPath}report.html`))
+      console.log(chalk.green(`> Report at  http://192.168.0.123:8080:${port}${publicPath}report.html`))
     }
 
   })

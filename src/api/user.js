@@ -4,13 +4,13 @@ export function login(data) {
   return request({
     url: '/user/login',
     method: 'post',
-    data
+    params:data
   })
 }
 
 export function getInfo(token) {
   return request({
-    url: '/user/info',
+    url: '/user/role',
     method: 'get',
     params: { token }
   })

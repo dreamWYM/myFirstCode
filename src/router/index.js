@@ -7,7 +7,7 @@ Vue.use(Router)
 import Layout from '@/layout'
 
 /* Router Modules */
-// import componentsRouter from './modules/components'
+import componentsRouter from './modules/components'
 // import chartsRouter from './modules/charts'
 import tableRouter from './modules/table'
 // import nestedRouter from './modules/nested'
@@ -61,25 +61,15 @@ export const constantRoutes = [
     hidden: true
   },
   {
-    path: '/404',
-    component: () => import('@/views/error-page/404'),
-    hidden: true
-  },
-  {
-    path: '/401',
-    component: () => import('@/views/error-page/401'),
-    hidden: true
-  },
-  {
     path: '/',
     component: Layout,
     redirect: '/dashboard',
     children: [
       {
-        path: 'dashboard',
+        path: '/dashboard',
         component: () => import('@/views/dashboard/index'),
-        name: 'Dashboard',
-        meta: { title: '智慧校园', icon: 'dashboard', affix: true }
+        name: '首页',
+        meta: { title: '智慧校园', icon: 'dashboard', affix: false }
       }
     ]
   },
@@ -98,56 +88,65 @@ export const constantRoutes = [
     ]
   }
 ]
+//实例化vue的时候只挂载constantRouter
+export default new Router({
+  routes: constantRoutes
+})
 
 /**
  * asyncRoutes
  * the routes that need to be dynamically loaded based on user roles
  */
+//异步挂载的路由
+//动态需要根据权限加载的路由表
 export const asyncRoutes = [
-  /** when your routing map is too long, you can split it into small modules **/
-  // componentsRouter,
-  // chartsRouter,
-  // nestedRouter,
-  tableRouter,
   {
-    path: '/error',
+    path: '/permission',
     component: Layout,
-    redirect: 'noRedirect',
-    name: 'ErrorPages',
+    redirect: '/permission/page',
+    alwaysShow: true, // will always show the root menu
+    name: '权限测试',
     meta: {
-      title: 'Error Pages',
-      icon: '404'
+      title: 'Permission',
+      icon: 'lock',
+      roles: ['admin', 'teacher'] // you can set roles in root nav
     },
     children: [
       {
-        path: '401',
-        component: () => import('@/views/error-page/401'),
-        name: 'Page401',
-        meta: { title: '401', noCache: true }
+        path: 'page',
+        component: () => import('@/views/permission/page'),
+        name: 'PagePermission',
+        meta: {
+          title: 'Page Permission',
+          roles: ['admin'] // or you can only set roles in sub nav
+        }
       },
       {
-        path: '404',
-        component: () => import('@/views/error-page/404'),
-        name: 'Page404',
-        meta: { title: '404', noCache: true }
+        path: 'directive',
+        component: () => import('@/views/permission/directive'),
+        name: 'DirectivePermission',
+        meta: {
+          title: 'Directive Permission'
+          // if do not set roles, means: this page does not require permission
+        }
+      },
+      {
+        path: 'role',
+        component: () => import('@/views/permission/role'),
+        name: 'RolePermission',
+        meta: {
+          title: 'Role Permission',
+          roles: ['admin']
+        }
       }
     ]
   },
 
-  {
-    path: '/error-log',
-    component: Layout,
-    children: [
-      {
-        path: 'log',
-        component: () => import('@/views/error-log/index'),
-        name: 'ErrorLog',
-        meta: { title: 'Error Log', icon: 'bug' }
-      }
-    ]
-  },
-  // 404 page must be placed at the end !!!
-  { path: '*', redirect: '/404', hidden: true }
+  /** when your routing map is too long, you can split it into small modules **/
+  componentsRouter,
+  // chartsRouter,
+  // nestedRouter,
+  tableRouter
 ]
 
 const createRouter = () => new Router({
@@ -164,4 +163,4 @@ export function resetRouter() {
   router.matcher = newRouter.matcher // reset router
 }
 
-export default router
+// export default router

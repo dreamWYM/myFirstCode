@@ -1,7 +1,21 @@
 <template>
   <div class="app-container">
     <!-- 头部添加导出 -->
-    <div class="filter-container">
+    <div align="center" class="filter-container">
+      <el-input
+        v-model="listQuery.name"
+        class="filter-item"
+        placeholder="请输入搜索的学生名字"
+        style="width: 500px;"
+        @keyup.enter.native="handleFilter"
+      />
+      <el-button
+        v-waves
+        type="primary"
+        class="filter-item"
+        icon="el-icon-search"
+        @click="handleFilter"
+      >搜索</el-button>
       <el-button
         class="filter-item"
         style="margin-left: 10px;"
@@ -27,19 +41,19 @@
       style="width: 100%;"
       @sort-change="sortChange"
     >
-      <el-table-column label="年级ID" prop="id" sortable="custom" align="center" width="80">
+      <el-table-column label="课程ID" prop="id" sortable="custom" align="center" width="80">
         <template slot-scope="scope">
           <span>{{ scope.row.id }}</span>
         </template>
       </el-table-column>
-      <el-table-column label="年级名称" prop="gradeName" align="center">
+      <el-table-column label="课程名称" prop="courseName" align="center">
         <template slot-scope="scope">
-          <span>{{ scope.row.gradeName }}</span>
+          <span>{{ scope.row.courseName }}</span>
         </template>
       </el-table-column>
-      <el-table-column label="年级编号" prop="gradeNum" align="center">
+      <el-table-column label="课程编号" prop="courseNum" align="center">
         <template slot-scope="scope">
-          <span>{{ scope.row.gradeNum }}</span>
+          <span>{{ scope.row.courseNum }}</span>
         </template>
       </el-table-column>
       <el-table-column label="操作" align="center" width="530" class-name="small-padding fixed-width">
@@ -73,11 +87,11 @@
         label-width="80px"
         style="width: 400px; margin-left:50px;"
       >
-        <el-form-item label="年级名称" prop="gradeName">
-          <el-input v-model="temp.gradeName" />
+        <el-form-item label="课程名称" prop="courseName">
+          <el-input v-model="temp.courseName" />
         </el-form-item>
-        <el-form-item label="年级编号" prop="gradeNum">
-          <el-input v-model="temp.gradeNum" />
+        <el-form-item label="课程编号" prop="courseNum">
+          <el-input v-model="temp.courseNum" />
         </el-form-item>
       </el-form>
       <div slot="footer" class="dialog-footer">
@@ -115,8 +129,8 @@ export default {
       },
       temp: {
         id: undefined,
-        gradeName: '',
-        gradeNum: ''
+        courseName: '',
+        courseNum: ''
       },
       dialogFormVisible: false,
       dialogStatus: '',
@@ -127,8 +141,8 @@ export default {
       dialogPvVisible: false,
       pvData: [],
       rules: {
-        gradeName: [{ required: true, message: '年级名称不能为空', trigger: 'blur' }],
-        gradeNum: [{ required: true, message: '年级编号不能为空', trigger: 'blur' }]
+        courseName: [{ required: true, message: '课程名称不能为空', trigger: 'blur' }],
+        courseNum: [{ required: true, message: '课程编号不能为空', trigger: 'blur' }]
       },
       downloadLoading: false
     }
@@ -145,14 +159,13 @@ export default {
           size: this.listQuery.limit
         }
       }
-      api.getGrade(params)
+      api.getCourse(params)
         .then(res => {
           console.log(res)
           this.list = res.data.list
           this.total = res.data.total
           this.listQuery.page = res.data.pageNum
           this.listQuery.limit = res.data.pageSize
-          this.listLoading = false
         })
         .catch(err => {
           console.log(err)
@@ -201,10 +214,10 @@ export default {
     },
     createData() {
       this.addtemp = this.$qs.stringify({
-        gradeName: this.temp.gradeName,
-        gradeNum: this.temp.gradeNum
+        courseName: this.temp.courseName,
+        courseNum: this.temp.courseNum
       })
-      api.addGrade(this.addtemp)
+      api.addCourse(this.addtemp)
         .then(res => {
           if (res.code === 20000) {
             this.$refs['dataForm'].validate((valid) => {
@@ -241,10 +254,10 @@ export default {
     updateData() {
       this.editemp = this.$qs.stringify({
         id: this.editId,
-        gradeName: this.temp.gradeName,
-        gradeNum: this.temp.gradeNum
+        courseName: this.temp.courseName,
+        courseNum: this.temp.courseNum
       })
-      api.editGrade(this.editemp)
+      api.editCourse(this.editemp)
         .then(res => {
           if (res.code === 20000) {
             this.$notify({
@@ -294,8 +307,8 @@ export default {
     handleDownload() {
       this.downloadLoading = true
       import('@/vendor/Export2Excel').then(excel => {
-        const tHeader = ['年级名称', '年级编号']
-        const filterVal = ['gradeName', 'gradeNum']
+        const tHeader = ['课程名称', '课程编号']
+        const filterVal = ['courseName', 'courseNum']
         const data = this.formatJson(filterVal, this.list)
         excel.export_json_to_excel({
           header: tHeader,

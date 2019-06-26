@@ -30,10 +30,12 @@ const mutations = {
 
 const actions = {
   // user login
-  login({ commit }, userInfo) {
-    const { username, password } = userInfo
+  login ({ commit }, userInfo) {
+
+    const { account, pass } = userInfo
     return new Promise((resolve, reject) => {
-      login({ username: username.trim(), password: password }).then(response => {
+      // debugger
+      login({ account: account.trim(), pass: pass }).then(response => {
         const { data } = response
         commit('SET_TOKEN', data.token)
         setToken(data.token)
@@ -45,7 +47,7 @@ const actions = {
   },
 
   // get user info
-  getInfo({ commit, state }) {
+  getInfo ({ commit, state }) {
     return new Promise((resolve, reject) => {
       getInfo(state.token).then(response => {
         const { data } = response
@@ -53,19 +55,24 @@ const actions = {
         if (!data) {
           reject('Verification failed, please Login again.')
         }
-
-        const { roles, name, avatar, introduction } = data
-
+        var roles = [];
+        for (var i = 0; i < data.length; i++) {
+          roles.push(data[i].name);
+        }
+        //const { roles, name, avatar, introduction } = data
+        var rolesData = {
+          roles: roles
+        };
         // roles must be a non-empty array
         if (!roles || roles.length <= 0) {
           reject('getInfo: roles must be a non-null array!')
         }
 
         commit('SET_ROLES', roles)
-        commit('SET_NAME', name)
-        commit('SET_AVATAR', avatar)
-        commit('SET_INTRODUCTION', introduction)
-        resolve(data)
+        commit('SET_NAME', "test")
+        commit('SET_AVATAR', "test")
+        commit('SET_INTRODUCTION', "test")
+        resolve(rolesData)
       }).catch(error => {
         reject(error)
       })
@@ -73,7 +80,7 @@ const actions = {
   },
 
   // user logout
-  logout({ commit, state }) {
+  logout ({ commit, state }) {
     return new Promise((resolve, reject) => {
       logout(state.token).then(() => {
         commit('SET_TOKEN', '')
@@ -88,7 +95,7 @@ const actions = {
   },
 
   // remove token
-  resetToken({ commit }) {
+  resetToken ({ commit }) {
     return new Promise(resolve => {
       commit('SET_TOKEN', '')
       commit('SET_ROLES', [])
@@ -98,7 +105,7 @@ const actions = {
   },
 
   // dynamically modify permissions
-  changeRoles({ commit, dispatch }, role) {
+  changeRoles ({ commit, dispatch }, role) {
     return new Promise(async resolve => {
       const token = role + '-token'
 

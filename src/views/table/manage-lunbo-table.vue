@@ -1,7 +1,6 @@
 <template>
   <div class="app-container">
-    <!-- 头部添加导出 -->
-    <div class="filter-container">
+    <div class="filter-container" align="center">
       <el-button
         class="filter-item"
         style="margin-left: 10px;"
@@ -20,6 +19,7 @@
     <!--列表数据  -->
     <el-table
       :key="tableKey"
+      v-loading="listLoading"
       :data="list"
       border
       fit
@@ -27,29 +27,49 @@
       style="width: 100%;"
       @sort-change="sortChange"
     >
-      <el-table-column label="年级ID" prop="id" sortable="custom" align="center" width="80">
+      <el-table-column label="轮播图ID" prop="id" sortable="custom" align="center" width="80">
         <template slot-scope="scope">
           <span>{{ scope.row.id }}</span>
         </template>
       </el-table-column>
-      <el-table-column label="年级名称" prop="gradeName" align="center">
+      <el-table-column label="标题" align="center">
         <template slot-scope="scope">
-          <span>{{ scope.row.gradeName }}</span>
+          <span>{{ scope.row.title }}</span>
         </template>
       </el-table-column>
-      <el-table-column label="年级编号" prop="gradeNum" align="center">
+      <el-table-column label="内容">
         <template slot-scope="scope">
-          <span>{{ scope.row.gradeNum }}</span>
+          <span>{{ scope.row.content }}</span>
         </template>
       </el-table-column>
-      <el-table-column label="操作" align="center" width="530" class-name="small-padding fixed-width">
+      <el-table-column label="图片">
+        <template slot-scope="scope">
+          <span>{{ scope.row.imagePath }}</span>
+        </template>
+      </el-table-column>
+      <el-table-column label="排序" align="center">
+        <template slot-scope="scope">
+          <span>{{ scope.row.sort }}</span>
+        </template>
+      </el-table-column>
+      <el-table-column label="超链接地址" align="center">
+        <template slot-scope="scope">
+          <span>{{ scope.row.url }}</span>
+        </template>
+      </el-table-column>
+      <el-table-column label="是否展现" align="center">
+        <template slot-scope="scope">
+          <span>{{ scope.row.showBanner}}</span>
+        </template>
+      </el-table-column>
+      <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
         <template slot-scope="{row}">
           <el-button type="primary" size="mini" @click="handleUpdate(row)">编辑</el-button>
           <el-button
             v-if="row.status!='deleted'"
             size="mini"
             type="danger"
-            @click="handleModifyStatus(row,'deleted')"
+            @click="handleDelete(row,'deleted')"
           >删除</el-button>
         </template>
       </el-table-column>
@@ -63,21 +83,35 @@
       :limit.sync="listQuery.limit"
       @pagination="getList"
     />
-    <!--添加信息的弹出框  -->
+    <!--弹出框  -->
     <el-dialog :title="textMap[dialogStatus]" :visible.sync="dialogFormVisible">
       <el-form
         ref="dataForm"
         :rules="rules"
         :model="temp"
         label-position="left"
-        label-width="80px"
+        label-width="100px"
         style="width: 400px; margin-left:50px;"
       >
-        <el-form-item label="年级名称" prop="gradeName">
-          <el-input v-model="temp.gradeName" />
+        <el-form-item label="标题" prop="title">
+          <el-input v-model="temp.title" />
         </el-form-item>
-        <el-form-item label="年级编号" prop="gradeNum">
-          <el-input v-model="temp.gradeNum" />
+        <el-form-item label="内容" prop="content">
+          <el-input v-model="temp.content" />
+        </el-form-item>
+        <el-form-item label="图片" prop="image">
+          <el-input v-model="temp.imagePath" />
+          <!--<div></div>-->
+        </el-form-item>
+        <el-form-item label="排序" prop="sort">
+          <el-input v-model="temp.sort" />
+        </el-form-item>
+        <el-form-item label="超链接地址" prop="url">
+          <el-input v-model="temp.url" />
+        </el-form-item>
+        <el-form-item label="是否展现" prop="showBanner">
+          <el-switch v-model="temp.showBanner" />
+          <!--<el-input v-model="temp.showBanner" />-->
         </el-form-item>
       </el-form>
       <div slot="footer" class="dialog-footer">
@@ -87,6 +121,7 @@
     </el-dialog>
   </div>
 </template>
+
 <script>
 // 后台接口数据
 import { fetchPv, createArticle, updateArticle } from '@/api/article'
@@ -95,18 +130,20 @@ import api from '@/api/api'
 import waves from '@/directive/waves' // waves directive
 import { parseTime } from '@/utils'
 import Pagination from '@/components/Pagination' // secondary package based on el-pagination
+// arr to obj, such as { CN : "China", US : "USA" }
 export default {
-  name: 'ManageGradeTable',
+  name: 'ManageParentTable',
   components: { Pagination },
   directives: { waves },
   data() {
     return {
       tableKey: 0,
       list: [],
+      total: 0,
+      removeid: '',
       editId: '',
       addtemp: '',
       editemp: '',
-      total: 0,
       listLoading: true,
       listQuery: {
         page: 1,
@@ -115,8 +152,12 @@ export default {
       },
       temp: {
         id: undefined,
-        gradeName: '',
-        gradeNum: ''
+        title: '',
+        content: '',
+        sort: null,
+        url: null,
+        show: '',
+        imagePath: null
       },
       dialogFormVisible: false,
       dialogStatus: '',
@@ -127,8 +168,9 @@ export default {
       dialogPvVisible: false,
       pvData: [],
       rules: {
-        gradeName: [{ required: true, message: '年级名称不能为空', trigger: 'blur' }],
-        gradeNum: [{ required: true, message: '年级编号不能为空', trigger: 'blur' }]
+        // pname: [{ required: true, message: '家长名字不能为空', trigger: 'blur' }],
+        // workAddr: [{ required: true, message: '工作地址不能为空', trigger: 'blur' }],
+        // phone: [{ required: true, message: '联系方式不能为空', trigger: 'blur' }]
       },
       downloadLoading: false
     }
@@ -145,7 +187,7 @@ export default {
           size: this.listQuery.limit
         }
       }
-      api.getGrade(params)
+      api.getBanner(params)
         .then(res => {
           console.log(res)
           this.list = res.data.list
@@ -162,14 +204,6 @@ export default {
       this.listQuery.page = 1
       this.getList()
     },
-    // 删除数据
-    handleModifyStatus(row, status) {
-      this.$message({
-        message: '操作Success',
-        type: 'success'
-      })
-      row.status = status
-    },
     sortChange(data) {
       const { prop, order } = data
       if (prop === 'id') {
@@ -184,11 +218,16 @@ export default {
       }
       this.handleFilter()
     },
+    // 添加数据
     resetTemp() {
       this.temp = {
         id: undefined,
-        status: 'published',
-        type: ''
+        title: '',
+        content: '',
+        sort: null,
+        url: null,
+        showBanner: false,
+        imagePath: null
       }
     },
     handleCreate() {
@@ -201,10 +240,14 @@ export default {
     },
     createData() {
       this.addtemp = this.$qs.stringify({
-        gradeName: this.temp.gradeName,
-        gradeNum: this.temp.gradeNum
+        title: this.temp.title,
+        content: this.temp.content,
+        sort: this.temp.sort,
+        url: this.temp.url,
+        showBanner: this.temp.showBanner,
+        imagePath: this.temp.imagePath
       })
-      api.addGrade(this.addtemp)
+      api.addBanner(this.addtemp)
         .then(res => {
           if (res.code === 20000) {
             this.$refs['dataForm'].validate((valid) => {
@@ -228,10 +271,11 @@ export default {
           console.log(err)
         })
     },
+    // 修改数据
     handleUpdate(row) {
       this.editId = row.id
       this.temp = Object.assign({}, row) // copy obj
-      this.temp.timestamp = new Date(this.temp.timestamp)
+      this.temp.entrytime = new Date(this.temp.entrytime)
       this.dialogStatus = 'update'
       this.dialogFormVisible = true
       this.$nextTick(() => {
@@ -241,15 +285,19 @@ export default {
     updateData() {
       this.editemp = this.$qs.stringify({
         id: this.editId,
-        gradeName: this.temp.gradeName,
-        gradeNum: this.temp.gradeNum
+        title: this.temp.title,
+        content: this.temp.content,
+        sort: this.temp.sort,
+        url: this.temp.url,
+        showBanner: this.temp.showBanner,
+        imagePath: this.temp.imagePath
       })
-      api.editGrade(this.editemp)
+      api.editBanner(this.editemp)
         .then(res => {
           if (res.code === 20000) {
             this.$notify({
               title: 'Success',
-              message: 'Update Successfully',
+              message: '修改成功',
               type: 'success',
               duration: 2000
             })
@@ -261,7 +309,7 @@ export default {
       this.$refs['dataForm'].validate((valid) => {
         if (valid) {
           const tempData = Object.assign({}, this.temp)
-          tempData.timestamp = +new Date(tempData.timestamp) // change Thu Nov 30 2017 16:41:05 GMT+0800 (CST) to 1512031311464
+          tempData.entrytime = +new Date(tempData.entrytime) // change Thu Nov 30 2017 16:41:05 GMT+0800 (CST) to 1512031311464
           updateArticle(tempData).then(() => {
             for (const v of this.list) {
               if (v.id === this.temp.id) {
@@ -275,15 +323,28 @@ export default {
         }
       })
     },
+    // 删除数据
     handleDelete(row) {
-      this.$notify({
-        title: 'Success',
-        message: 'Delete Successfully',
-        type: 'success',
-        duration: 2000
+      this.removeid = this.$qs.stringify({
+        id: row.id
       })
-      const index = this.list.indexOf(row)
-      this.list.splice(index, 1)
+      api.delectBanner(this.removeid)
+        .then(res => {
+          if (res.code === 20000) {
+            // 更新列表
+            this.$notify({
+              title: 'Success',
+              message: '删除成功',
+              type: 'success',
+              duration: 2000
+            })
+            const index = this.list.indexOf(row)
+            this.list.splice(index, 1)
+          }
+        })
+        .catch(err => {
+          console.log(err)
+        })
     },
     handleFetchPv(pv) {
       fetchPv(pv).then(response => {
@@ -291,11 +352,12 @@ export default {
         this.dialogPvVisible = true
       })
     },
+    // excel表格导出
     handleDownload() {
       this.downloadLoading = true
       import('@/vendor/Export2Excel').then(excel => {
-        const tHeader = ['年级名称', '年级编号']
-        const filterVal = ['gradeName', 'gradeNum']
+        const tHeader = ['家长姓名', '工作地址', '联系方式']
+        const filterVal = ['pname', 'workAddr', 'phone']
         const data = this.formatJson(filterVal, this.list)
         excel.export_json_to_excel({
           header: tHeader,

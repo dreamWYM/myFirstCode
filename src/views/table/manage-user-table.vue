@@ -1,7 +1,21 @@
 <template>
   <div class="app-container">
     <!-- 头部添加导出 -->
-    <div class="filter-container">
+    <div class="filter-container" align="center">
+      <el-input
+        v-model="listQuery.title"
+        placeholder="请输入搜索内容"
+        style="width: 400px; margin-right: 20px;"
+        class="filter-item"
+        @keyup.enter.native="handleFilter"
+      />
+      <el-button
+        v-waves
+        class="filter-item"
+        type="primary"
+        icon="el-icon-search"
+        @click="handleFilter"
+      >搜索</el-button>
       <el-button
         class="filter-item"
         style="margin-left: 10px;"
@@ -25,21 +39,15 @@
       fit
       highlight-current-row
       style="width: 100%;"
-      @sort-change="sortChange"
     >
-      <el-table-column label="年级ID" prop="id" sortable="custom" align="center" width="80">
+      <el-table-column label="账号" prop="account" align="center">
         <template slot-scope="scope">
-          <span>{{ scope.row.id }}</span>
+          <span>{{ scope.row.account }}</span>
         </template>
       </el-table-column>
-      <el-table-column label="年级名称" prop="gradeName" align="center">
+      <el-table-column label="密码" prop="pass" align="center">
         <template slot-scope="scope">
-          <span>{{ scope.row.gradeName }}</span>
-        </template>
-      </el-table-column>
-      <el-table-column label="年级编号" prop="gradeNum" align="center">
-        <template slot-scope="scope">
-          <span>{{ scope.row.gradeNum }}</span>
+          <span>{{ scope.row.pass }}</span>
         </template>
       </el-table-column>
       <el-table-column label="操作" align="center" width="530" class-name="small-padding fixed-width">
@@ -73,11 +81,11 @@
         label-width="80px"
         style="width: 400px; margin-left:50px;"
       >
-        <el-form-item label="年级名称" prop="gradeName">
-          <el-input v-model="temp.gradeName" />
+        <el-form-item label="账号" prop="account">
+          <el-input v-model="temp.account" />
         </el-form-item>
-        <el-form-item label="年级编号" prop="gradeNum">
-          <el-input v-model="temp.gradeNum" />
+        <el-form-item label="密码" prop="pass">
+          <el-input v-model="temp.pass" />
         </el-form-item>
       </el-form>
       <div slot="footer" class="dialog-footer">
@@ -96,7 +104,7 @@ import waves from '@/directive/waves' // waves directive
 import { parseTime } from '@/utils'
 import Pagination from '@/components/Pagination' // secondary package based on el-pagination
 export default {
-  name: 'ManageGradeTable',
+  name: 'ManageUserTable',
   components: { Pagination },
   directives: { waves },
   data() {
@@ -104,9 +112,9 @@ export default {
       tableKey: 0,
       list: [],
       editId: '',
+      total: 0,
       addtemp: '',
       editemp: '',
-      total: 0,
       listLoading: true,
       listQuery: {
         page: 1,
@@ -114,9 +122,8 @@ export default {
         sort: '+id'
       },
       temp: {
-        id: undefined,
-        gradeName: '',
-        gradeNum: ''
+        account: '',
+        pass: ''
       },
       dialogFormVisible: false,
       dialogStatus: '',
@@ -127,8 +134,8 @@ export default {
       dialogPvVisible: false,
       pvData: [],
       rules: {
-        gradeName: [{ required: true, message: '年级名称不能为空', trigger: 'blur' }],
-        gradeNum: [{ required: true, message: '年级编号不能为空', trigger: 'blur' }]
+        account: [{ required: true, message: '用户名不能为空', trigger: 'blur' }],
+        pass: [{ required: true, message: '密码不能为空', trigger: 'blur' }]
       },
       downloadLoading: false
     }
@@ -139,50 +146,20 @@ export default {
   methods: {
     getList() {
       this.listLoading = true
-      var params = {
-        params: {
-          page: this.listQuery.page,
-          size: this.listQuery.limit
-        }
-      }
-      api.getGrade(params)
-        .then(res => {
-          console.log(res)
-          this.list = res.data.list
-          this.total = res.data.total
-          this.listQuery.page = res.data.pageNum
-          this.listQuery.limit = res.data.pageSize
-          this.listLoading = false
-        })
-        .catch(err => {
-          console.log(err)
-        })
+      // api.Login()
+      //   .then(res => {
+      //     console.log(res)
+      //     // this.list = res.data
+      //     // this.total = res.data.total
+      //     // console.log(this.total)
+      //   })
+      //   .catch(err => {
+      //     console.log(err)
+      //   })
     },
     handleFilter() {
       this.listQuery.page = 1
       this.getList()
-    },
-    // 删除数据
-    handleModifyStatus(row, status) {
-      this.$message({
-        message: '操作Success',
-        type: 'success'
-      })
-      row.status = status
-    },
-    sortChange(data) {
-      const { prop, order } = data
-      if (prop === 'id') {
-        this.sortByID(order)
-      }
-    },
-    sortByID(order) {
-      if (order === 'ascending') {
-        this.listQuery.sort = '+id'
-      } else {
-        this.listQuery.sort = '-id'
-      }
-      this.handleFilter()
     },
     resetTemp() {
       this.temp = {
@@ -201,15 +178,17 @@ export default {
     },
     createData() {
       this.addtemp = this.$qs.stringify({
-        gradeName: this.temp.gradeName,
-        gradeNum: this.temp.gradeNum
+        account: this.temp.account,
+        pass: this.temp.pass
       })
-      api.addGrade(this.addtemp)
+      api.addClass(this.addtemp)
         .then(res => {
           if (res.code === 20000) {
+            // 更新列表
             this.$refs['dataForm'].validate((valid) => {
               if (valid) {
                 this.temp.id = parseInt(Math.random() * 100) + 1024 // mock a id
+                // this.temp.author = 'vue-element-admin'
                 createArticle(this.temp).then(() => {
                   this.list.unshift(this.temp)
                   this.dialogFormVisible = false
@@ -231,7 +210,6 @@ export default {
     handleUpdate(row) {
       this.editId = row.id
       this.temp = Object.assign({}, row) // copy obj
-      this.temp.timestamp = new Date(this.temp.timestamp)
       this.dialogStatus = 'update'
       this.dialogFormVisible = true
       this.$nextTick(() => {
@@ -241,15 +219,15 @@ export default {
     updateData() {
       this.editemp = this.$qs.stringify({
         id: this.editId,
-        gradeName: this.temp.gradeName,
-        gradeNum: this.temp.gradeNum
+        account: this.temp.account,
+        pass: this.temp.pass
       })
-      api.editGrade(this.editemp)
+      api.editClass(this.editemp)
         .then(res => {
           if (res.code === 20000) {
             this.$notify({
               title: 'Success',
-              message: 'Update Successfully',
+              message: '修改成功',
               type: 'success',
               duration: 2000
             })
@@ -294,8 +272,8 @@ export default {
     handleDownload() {
       this.downloadLoading = true
       import('@/vendor/Export2Excel').then(excel => {
-        const tHeader = ['年级名称', '年级编号']
-        const filterVal = ['gradeName', 'gradeNum']
+        const tHeader = ['班级名称', '班级号']
+        const filterVal = ['className', 'classNum']
         const data = this.formatJson(filterVal, this.list)
         excel.export_json_to_excel({
           header: tHeader,
